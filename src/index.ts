@@ -1,9 +1,9 @@
 import { EventEmitter } from 'events';
+import { ForkOptions } from 'child_process';
 import * as debug from 'debug';
 
 import type { Db, Filter, MongoClientOptions, Sort } from 'mongodb';
 import { SortDirection } from 'mongodb';
-import { ForkOptions } from 'child_process';
 import type { IJobDefinition } from './types/JobDefinition';
 import type { IAgendaConfig } from './types/AgendaConfig';
 import type { IDatabaseOptions, IDbConfig, IMongoOptions } from './types/DbOptions';
@@ -105,8 +105,7 @@ export class Agenda extends EventEmitter {
 			defaultLockLimit?: number;
 			lockLimit?: number;
 			defaultLockLifetime?: number;
-			// eslint-disable-next-line @typescript-eslint/ban-types
-		} & (IDatabaseOptions | IMongoOptions | {}) &
+		} & (IDatabaseOptions | IMongoOptions | object) &
 			IDbConfig & {
 				forkHelper?: { path: string; options?: ForkOptions };
 				forkedWorker?: boolean;

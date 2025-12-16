@@ -1,12 +1,12 @@
-import * as date from 'date.js';
-import * as debug from 'debug';
-import { ObjectId } from 'mongodb';
 import { ChildProcess, fork } from 'child_process';
-import type { Agenda } from './index';
+import { ObjectId } from 'mongodb';
+import * as debug from 'debug';
+import * as date from 'date.js';
 import type { DefinitionProcessor } from './types/JobDefinition';
 import { IJobParameters, datefields, TJobDatefield } from './types/JobParameters';
 import { JobPriority, parsePriority } from './utils/priority';
 import { computeFromInterval, computeFromRepeatAt } from './utils/nextRunAt';
+import type { Agenda } from './index';
 
 const log = debug('agenda:job');
 
@@ -36,7 +36,7 @@ export class Job<DATA = unknown | void> {
 			try {
 				this.forkedChild.send('cancel');
 				console.info('canceled child', this.attrs.name, this.attrs._id);
-			} catch (err) {
+			} catch (_err) {
 				console.log('cannot send cancel to child');
 			}
 		}
@@ -407,7 +407,7 @@ export class Job<DATA = unknown | void> {
 						if (typeof message === 'string') {
 							try {
 								childError = JSON.parse(message);
-							} catch (errJson) {
+							} catch (_errJson) {
 								childError = message;
 							}
 						} else {

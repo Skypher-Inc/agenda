@@ -1,8 +1,6 @@
 # Agenda
 
-<p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/agenda/agenda@master/agenda.svg" alt="Agenda" width="100" height="100">
-</p>
+## Edited by Skypher to upgrade packages
 
 <p align="center">
   A light-weight job scheduling library for Node.js

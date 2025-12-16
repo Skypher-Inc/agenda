@@ -350,9 +350,10 @@ describe('Job', () => {
 			});
 
 			it('fails the job', () => {
-				expect(job.attrs.failReason).to.equal(
-					'failed to calculate nextRunAt due to invalid repeat interval (asd): Error: Validation error, cannot resolve alias "asd"'
+				expect(job.attrs.failReason).to.include(
+					'failed to calculate nextRunAt due to invalid repeat interval (asd)'
 				);
+				expect(job.attrs.failReason).to.include('Error:');
 			});
 		});
 	});

@@ -1,10 +1,10 @@
 import * as debug from 'debug';
 import type { IAgendaJobStatus, IAgendaStatus } from './types/AgendaStatus';
 import type { IJobDefinition } from './types/JobDefinition';
-import type { Agenda, JobWithId } from './index';
 import type { IJobParameters } from './types/JobParameters';
 import { Job } from './Job';
 import { JobProcessingQueue } from './JobProcessingQueue';
+import type { Agenda, JobWithId } from './index';
 
 const log = debug('agenda:jobProcessor');
 
@@ -52,32 +52,32 @@ export class JobProcessor {
 				: this.jobQueue.getQueue().map(job => ({
 						...job.toJson(),
 						canceled: job.getCanceledMessage()
-				  })),
+					})),
 			runningJobs: !fullDetails
 				? this.runningJobs.length
 				: this.runningJobs.map(job => ({
 						...job.toJson(),
 						canceled: job.getCanceledMessage()
-				  })),
+					})),
 			lockedJobs: !fullDetails
 				? this.lockedJobs.length
 				: this.lockedJobs.map(job => ({
 						...job.toJson(),
 						canceled: job.getCanceledMessage()
-				  })),
+					})),
 			jobsToLock: !fullDetails
 				? this.jobsToLock.length
 				: this.jobsToLock.map(job => ({
 						...job.toJson(),
 						canceled: job.getCanceledMessage()
-				  })),
+					})),
 			isLockingOnTheFly: this.isLockingOnTheFly
 		};
 	}
 
 	private nextScanAt = new Date();
 
-	private jobQueue: JobProcessingQueue = new JobProcessingQueue(this.agenda);
+	private jobQueue: JobProcessingQueue;
 
 	private runningJobs: JobWithId[] = [];
 
@@ -100,6 +100,7 @@ export class JobProcessor {
 		private processEvery: number
 	) {
 		log('creating interval to call processJobs every [%dms]', processEvery);
+		this.jobQueue = new JobProcessingQueue(this.agenda);
 		this.processInterval = setInterval(() => this.process(), processEvery);
 		this.process();
 	}
@@ -506,52 +507,58 @@ export class JobProcessor {
 				const checkIfJobIsStillAlive = () =>
 					// check every "this.agenda.definitions[job.attrs.name].lockLifetime / 2"" (or at mininum every processEvery)
 					new Promise<void>((resolve, reject) => {
-						setTimeout(async () => {
-							// when job is not running anymore, just finish
-							if (!jobIsRunning) {
-								log.extend('runOrRetry')(
-									'[%s:%s] checkIfJobIsStillAlive detected job is not running anymore. stopping check.',
-									job.attrs.name,
-									job.attrs._id
-								);
-								resolve();
-								return;
-							}
+						setTimeout(
+							async () => {
+								// when job is not running anymore, just finish
+								if (!jobIsRunning) {
+									log.extend('runOrRetry')(
+										'[%s:%s] checkIfJobIsStillAlive detected job is not running anymore. stopping check.',
+										job.attrs.name,
+										job.attrs._id
+									);
+									resolve();
+									return;
+								}
 
-							if (await job.isExpired()) {
-								log.extend('runOrRetry')(
-									'[%s:%s] checkIfJobIsStillAlive detected an expired job, killing it.',
-									job.attrs.name,
-									job.attrs._id
-								);
+								if (await job.isExpired()) {
+									log.extend('runOrRetry')(
+										'[%s:%s] checkIfJobIsStillAlive detected an expired job, killing it.',
+										job.attrs.name,
+										job.attrs._id
+									);
 
-								reject(
-									new Error(
-										`execution of '${job.attrs.name}' canceled, execution took more than ${
-											this.agenda.definitions[job.attrs.name].lockLifetime
-										}ms. Call touch() for long running jobs to keep them alive.`
-									)
-								);
-								return;
-							}
+									reject(
+										new Error(
+											`execution of '${job.attrs.name}' canceled, execution took more than ${
+												this.agenda.definitions[job.attrs.name].lockLifetime
+											}ms. Call touch() for long running jobs to keep them alive.`
+										)
+									);
+									return;
+								}
 
-							if (!job.attrs.lockedAt) {
-								log.extend('runOrRetry')(
-									'[%s:%s] checkIfJobIsStillAlive detected a job without a lockedAt value, killing it.',
-									job.attrs.name,
-									job.attrs._id
-								);
+								if (!job.attrs.lockedAt) {
+									log.extend('runOrRetry')(
+										'[%s:%s] checkIfJobIsStillAlive detected a job without a lockedAt value, killing it.',
+										job.attrs.name,
+										job.attrs._id
+									);
 
-								reject(
-									new Error(
-										`execution of '${job.attrs.name}' canceled, no lockedAt date found. Ensure to call touch() for long running jobs to keep them alive.`
-									)
-								);
-								return;
-							}
+									reject(
+										new Error(
+											`execution of '${job.attrs.name}' canceled, no lockedAt date found. Ensure to call touch() for long running jobs to keep them alive.`
+										)
+									);
+									return;
+								}
 
-							resolve(checkIfJobIsStillAlive());
-						}, Math.max(this.processEvery / 2, this.agenda.definitions[job.attrs.name].lockLifetime / 2));
+								resolve(checkIfJobIsStillAlive());
+							},
+							Math.max(
+								this.processEvery / 2,
+								this.agenda.definitions[job.attrs.name].lockLifetime / 2
+							)
+						);
 					});
 				// CALL THE ACTUAL METHOD TO PROCESS THE JOB!!!
 				await Promise.race([job.run(), checkIfJobIsStillAlive()]);
