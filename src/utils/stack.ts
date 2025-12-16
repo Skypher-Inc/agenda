@@ -11,11 +11,11 @@ export function getCallerFilePath(position = 2): string | undefined {
 	const { stack } = new Error();
 	Error.prepareStackTrace = oldPrepareStackTrace;
 
-	if (stack !== null && typeof stack === 'object') {
+	if (stack !== null && typeof stack === 'object' && stack[position]) {
 		// stack[0] holds this file
 		// stack[1] holds where this function was called
 		// stack[2] holds the file we're interested in
-		return stack[position] ? (stack[position] as any).getFileName() : undefined;
+		return (stack[position] as any).getFileName();
 	}
 	return undefined;
 }
